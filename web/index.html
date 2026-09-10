@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>הרשמה - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="progress-bar"><div id="progress-fill" style="width: 33%"></div></div>
+
+    <!-- Stage 1: sign up / log in -->
+    <section id="auth-stage" class="card">
+      <h1>ברוכים הבאים</h1>
+      <p class="subtitle">בואו נתחיל בבניית הפרופיל שלכם</p>
+
+      <div class="tabs">
+        <button class="tab active" data-mode="signup">הרשמה</button>
+        <button class="tab" data-mode="login">התחברות</button>
+      </div>
+
+      <form id="auth-form">
+        <div id="name-field">
+          <label for="name">שם מלא</label>
+          <input type="text" id="name" autocomplete="name" />
+        </div>
+        <label for="email">דוא"ל</label>
+        <input type="email" id="email" required autocomplete="email" />
+        <label for="password">סיסמה</label>
+        <input type="password" id="password" required autocomplete="new-password" />
+        <div id="password-hint" class="hint-text">
+          8+ תווים, אות גדולה, אות קטנה, ספרה ותו מיוחד
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:14px;">
+          <input type="checkbox" id="terms" required style="width:auto;" />
+          <span style="font-size:0.85rem;">אני מאשר/ת את תנאי השימוש ומדיניות הפרטיות</span>
+        </label>
+        <button type="submit" class="btn-primary" id="auth-submit">הרשמה</button>
+      </form>
+
+      <button type="button" class="btn-google" id="google-btn">התחברות עם Google</button>
+      <p id="auth-error" class="error-text hidden"></p>
+    </section>
+
+    <!-- Stage 2: resume upload -->
+    <section id="upload-stage" class="card hidden">
+      <h1>העלאת קורות חיים</h1>
+      <p class="subtitle">קובץ PDF או Word - נשתמש בו כדי לבנות את הפרופיל שלכם</p>
+
+      <div id="dropzone" class="dropzone">
+        גררו קובץ לכאן, או לחצו לבחירה
+        <input type="file" id="file-input" accept=".pdf,.docx" class="hidden" />
+      </div>
+      <p id="upload-error" class="error-text hidden"></p>
+      <p id="upload-status" class="hint-text hidden"></p>
+      <button type="button" class="btn-secondary" id="logout-btn">התנתקות</button>
+    </section>
+  </div>
+
+  <script type="module" src="/src/onboarding.js"></script>
+</body>
+</html>

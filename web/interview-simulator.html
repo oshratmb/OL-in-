@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>סימולציית ראיון - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <style>
+    .layout { display:flex; gap:16px; max-width:900px; margin:0 auto; padding:20px; align-items:flex-start; }
+    .sidebar { flex:0 0 220px; position:sticky; top:20px; }
+    .chat-area { flex:1; min-width:0; }
+    .chat-feed { height:420px; overflow-y:auto; border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--card); margin-bottom:12px; }
+    .msg { max-width:80%; padding:10px 14px; border-radius:12px; margin-bottom:10px; font-size:0.9rem; line-height:1.4; }
+    .msg.assistant { background:#eef1f8; margin-inline-end:auto; }
+    .msg.user { background:var(--primary); color:#fff; margin-inline-start:auto; }
+    .input-row { display:flex; gap:8px; }
+    .input-row textarea { flex:1; min-height:44px; }
+    .input-row button { flex:0 0 auto; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar card">
+      <h2 id="job-title" style="margin:0 0 4px;"></h2>
+      <p id="company-name" class="hint-text" style="margin:0 0 10px;"></p>
+      <p class="hint-text">מראיין/ת: <span id="persona-title"></span></p>
+      <p class="hint-text">זמן: <span id="timer">00:00</span></p>
+      <button type="button" class="btn-secondary" id="finish-btn">סיום הראיון וקבלת משוב</button>
+    </aside>
+
+    <main class="chat-area">
+      <div class="chat-feed" id="chat-feed"></div>
+      <div class="input-row">
+        <textarea id="answer-input" placeholder="הקלידו את תשובתכם..."></textarea>
+        <button type="button" class="btn-primary" id="send-btn">שלח</button>
+      </div>
+      <p id="sim-error" class="error-text hidden"></p>
+    </main>
+  </div>
+
+  <script type="module" src="/src/interview-simulator.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>הוספת משרה - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <h1>הוספת משרה חדשה</h1>
+      <p class="subtitle">הדביקו את תיאור המשרה המלא ונבצע עבורכם ניתוח פערים</p>
+
+      <label for="jd-text">תיאור המשרה</label>
+      <textarea id="jd-text" rows="10" placeholder="הדביקו כאן את תיאור המשרה המלא..."></textarea>
+      <p id="analyze-error" class="error-text hidden"></p>
+      <button type="button" class="btn-primary" id="analyze-btn">נתח משרה</button>
+    </div>
+
+    <div class="card hidden" id="results-card">
+      <label for="job-title">תפקיד</label>
+      <input type="text" id="job-title" />
+      <label for="company-name">חברה</label>
+      <input type="text" id="company-name" />
+
+      <h2 style="margin-top:20px;">אחוז התאמה</h2>
+      <div class="progress-bar" style="height:14px;">
+        <div id="match-fill" style="width:0%; background:var(--success);"></div>
+      </div>
+      <p id="match-label" class="hint-text"></p>
+
+      <h2 style="margin-top:20px;">דרישות המשרה</h2>
+      <ul id="requirements-list" style="padding-inline-start: 20px; margin:0;"></ul>
+
+      <button type="button" class="btn-primary" id="continue-btn">המשך להתאמת מסמכים</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/job-intake.js"></script>
+</body>
+</html>

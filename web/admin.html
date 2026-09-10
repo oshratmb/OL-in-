@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>פורטל ניהול - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <style>
+    .page { max-width: 1000px; }
+    .kpi-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+    .kpi-tile { flex:1; min-width:150px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+    .kpi-tile .value { font-size:1.8rem; font-weight:700; color:var(--primary); }
+    .kpi-tile .label { color:var(--muted); font-size:0.85rem; margin-top:4px; }
+    table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    th, td { text-align:right; padding:8px; border-bottom:1px solid var(--border); }
+    th { color:var(--muted); font-weight:600; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:0.75rem; background:#eef1f8; }
+    .badge.paused { background:#fdecec; color:var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h1>פורטל ניהול</h1>
+      <a href="/dashboard.html" style="text-decoration:none;">חזרה לדאשבורד</a>
+    </div>
+
+    <p id="denied-message" class="error-text hidden">אין לך הרשאה לצפות בעמוד זה. מועברים לדאשבורד...</p>
+
+    <div id="admin-content" class="hidden">
+      <div class="kpi-row" id="kpi-row"></div>
+
+      <div class="card">
+        <h2>משתמשים</h2>
+        <input type="text" id="user-search" placeholder="חיפוש לפי שם או אימייל..." style="margin-bottom:12px;" />
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr><th>שם</th><th>אימייל</th><th>תפקיד</th><th>נרשם</th><th>סטטוס</th><th id="pause-col-header" class="hidden">פעולה</th></tr>
+            </thead>
+            <tbody id="users-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card hidden" id="errors-card">
+        <h2>לוג שגיאות</h2>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>מקור</th><th>הודעה</th><th>זמן</th></tr></thead>
+            <tbody id="errors-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>שאלות השלמה - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="progress-bar"><div id="progress-fill" style="width: 0%"></div></div>
+
+    <div class="card" id="question-card">
+      <p id="question-counter" class="hint-text"></p>
+      <h1 id="question-text"></h1>
+      <textarea id="answer-input" rows="4" placeholder="התשובה שלכם..."></textarea>
+
+      <div id="skip-tip" class="hidden" style="background:#eef4ff; border-radius:8px; padding:12px; margin-top:12px; font-size:0.9rem;">
+        💡 טיפ מקצועי: מענה קצר על השאלות הללו יאפשר לנו להדגיש את הניסיון שלכם בצורה
+        אופטימלית עבור משרה זו ולשפר את סיכוייכם למעבר הסינון!
+      </div>
+
+      <button type="button" class="btn-primary" id="next-btn">הבא</button>
+      <button type="button" class="btn-link" id="skip-btn" style="width:100%; margin-top:8px;">דלג על שאלה זו</button>
+    </div>
+
+    <div class="card hidden" id="generating-card" style="text-align:center;">
+      <p><span class="spinner" style="border-top-color: var(--primary); border-color: var(--border);"></span> יוצרים עבורכם קורות חיים ומכתב מקדים...</p>
+    </div>
+    <p id="generate-error" class="error-text hidden"></p>
+  </div>
+
+  <script type="module" src="/src/qna-wizard.js"></script>
+</body>
+</html>

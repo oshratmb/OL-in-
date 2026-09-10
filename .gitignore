@@ -1,0 +1,29 @@
+# envs (never commit real secrets)
+.env
+**/.env
+!**/.env.example
+
+# node
+node_modules/
+web/dist/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+ai-service/.pytest_cache/
+
+# supabase local dev
+supabase/.branches/
+supabase/.temp/
+
+# macOS
+.DS_Store
+
+# Claude Code local-only
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Streamlit local
+streamlit-app/.venv/
+.streamlit/secrets.toml

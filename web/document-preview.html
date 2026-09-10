@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>תצוגה מקדימה - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="page">
+    <div id="trust-warning" class="card hidden" style="border-color: var(--danger); background:#fdecec;">
+      <strong>שימו לב:</strong> חלק מהתוכן לא עבר אימות עובדתי מלא — מומלץ לבדוק ידנית לפני שליחה.
+      <ul id="violations-list" style="margin:8px 0 0; padding-inline-start:20px;"></ul>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <h1 style="margin:0;">המסמכים שלכם מוכנים</h1>
+        <div>
+          <button type="button" class="btn-secondary" id="lang-toggle" style="width:auto;">תרגם לאנגלית</button>
+        </div>
+      </div>
+
+      <div class="tabs" style="margin-top:16px;">
+        <button class="tab active" data-tab="resume">קורות חיים</button>
+        <button class="tab" data-tab="cover">מכתב מקדים</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-resume">
+        <div id="resume-preview"></div>
+        <button type="button" class="btn-primary" id="download-btn">הורד קורות חיים (.docx)</button>
+      </div>
+
+      <div class="tab-panel" id="panel-cover">
+        <label for="tone-select">טון כתיבה</label>
+        <select id="tone-select" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+          <option value="professional">מקצועי ופורמלי</option>
+          <option value="enthusiastic">נלהב ויצירתי</option>
+          <option value="concise">קצר ותמציתי</option>
+        </select>
+        <p id="cover-letter-text" style="white-space: pre-wrap; margin-top:16px;"></p>
+        <button type="button" class="btn-secondary" id="copy-btn">העתק מכתב מקדים</button>
+      </div>
+
+      <p id="action-error" class="error-text hidden"></p>
+      <button type="button" class="btn-secondary" id="back-btn">חזרה לדאשבורד</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/document-preview.js"></script>
+</body>
+</html>

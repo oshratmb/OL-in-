@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>הגדרות - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <h1>חיבור Gmail</h1>
+      <p class="subtitle" id="gmail-status-text">בודק סטטוס חיבור...</p>
+      <p id="gmail-error" class="error-text hidden">אירעה שגיאה בחיבור ל-Gmail, נסו שוב.</p>
+      <p id="gmail-reconnect" class="error-text hidden">החיבור פג — יש להתחבר מחדש.</p>
+      <button type="button" class="btn-primary" id="gmail-connect-btn">חבר את Gmail</button>
+      <button type="button" class="btn-danger hidden" id="gmail-disconnect-btn">נתק את Gmail</button>
+    </div>
+
+    <div class="card">
+      <h1>הזנת מייל ידנית</h1>
+      <p class="subtitle">אם Gmail לא מחובר, אפשר להדביק כאן תוכן מייל שקיבלתם ממעסיק</p>
+      <label for="m-sender">שולח</label>
+      <input type="text" id="m-sender" placeholder="hr@company.com" />
+      <label for="m-subject">נושא</label>
+      <input type="text" id="m-subject" />
+      <label for="m-body">תוכן המייל</label>
+      <textarea id="m-body" rows="6"></textarea>
+      <p id="manual-error" class="error-text hidden"></p>
+      <p id="manual-success" class="hint-text hidden">המייל נותח ונשמר בהצלחה.</p>
+      <button type="button" class="btn-primary" id="manual-submit-btn">שלח לניתוח</button>
+    </div>
+
+    <div class="card">
+      <h1>השהיית חשבון</h1>
+      <p class="subtitle" id="pause-status-text">
+        השהיית החשבון תעצור את סריקת ה-Gmail ואת כלי ה-AI (התאמת קורות חיים, ניתוח משרות, סימולציות).
+        שום מידע לא יימחק, וניתן לחדש פעילות בכל עת.
+      </p>
+      <button type="button" class="btn-secondary" id="pause-toggle-btn">השהה חשבון</button>
+    </div>
+
+    <button type="button" class="btn-secondary" id="back-btn">חזרה לדאשבורד</button>
+  </div>
+
+  <script type="module" src="/src/settings.js"></script>
+</body>
+</html>

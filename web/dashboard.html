@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>לוח בקרה - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <style>
+    .page { max-width: 100%; padding: 20px; }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+    .toolbar .actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .toolbar a, .toolbar button { width:auto; }
+    .board { display:flex; gap:14px; overflow-x:auto; padding-bottom:12px; }
+    .column { flex:0 0 260px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; }
+    .column h3 { margin:0 0 10px; font-size:0.95rem; }
+    .job-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:10px; }
+    .job-card .avatar { display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:var(--primary); color:#fff; font-size:0.75rem; margin-left:8px; }
+    .job-card .title-row { display:flex; align-items:center; margin-bottom:6px; }
+    .job-card .title-row strong { font-size:0.9rem; }
+    .job-card .company { color: var(--muted); font-size:0.8rem; margin:0 0 6px; }
+    .job-card select { width:100%; padding:6px; font-size:0.8rem; border:1px solid var(--border); border-radius:6px; }
+    #unlinked-banner { background:#fff8e6; border:1px solid #e0c24c; border-radius:10px; padding:14px; margin-bottom:16px; }
+    .unlinked-item { margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #e5d69a; }
+    .unlinked-item:last-child { border-bottom:none; margin-bottom:0; }
+    .candidate-btn { background:#fff; border:1px solid var(--border); border-radius:6px; padding:6px 10px; margin:4px 4px 0 0; font-size:0.8rem; width:auto; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="toolbar">
+      <h1 style="margin:0;">לוח הבקרה שלי</h1>
+      <div class="actions">
+        <a href="/job-intake.html" class="btn-primary" style="text-decoration:none; display:inline-block; padding:10px 16px;">+ הוספת משרה חדשה</a>
+        <button type="button" class="btn-secondary" id="sync-btn">סנכרן אימיילים עכשיו</button>
+        <a href="/settings.html" class="btn-secondary" style="text-decoration:none; display:inline-block; padding:10px 16px;">הגדרות</a>
+        <a href="/admin.html" class="btn-secondary" style="text-decoration:none; display:inline-block; padding:10px 16px;">פורטל ניהול</a>
+        <button type="button" class="btn-danger" id="logout-btn">התנתקות</button>
+      </div>
+    </div>
+
+    <div id="unlinked-banner" class="hidden">
+      <strong>זוהו אימיילים חדשים — לאיזו משרה לשייך?</strong>
+      <div id="unlinked-list"></div>
+    </div>
+
+    <p id="sync-status" class="hint-text hidden"></p>
+    <div class="board" id="board"></div>
+  </div>
+
+  <script type="module" src="/src/dashboard.js"></script>
+</body>
+</html>

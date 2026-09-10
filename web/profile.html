@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>אימות פרופיל - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="progress-bar"><div style="width: 100%"></div></div>
+
+    <div class="card">
+      <h1>בואו נוודא שהבנו נכון</h1>
+      <p class="subtitle">עברו על הפרטים שחילצנו מקורות החיים שלכם ותקנו במידת הצורך</p>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="personal">פרטים אישיים</button>
+        <button class="tab" data-tab="experience">ניסיון</button>
+        <button class="tab" data-tab="education">השכלה</button>
+        <button class="tab" data-tab="skills">מיומנויות</button>
+        <button class="tab" data-tab="projects">פרויקטים</button>
+      </div>
+
+      <form id="profile-form">
+        <div class="tab-panel active" id="panel-personal">
+          <label for="p-name">שם מלא</label>
+          <input type="text" id="p-name" />
+          <label for="p-email">דוא"ל</label>
+          <input type="text" id="p-email" />
+          <label for="p-phone">טלפון</label>
+          <input type="text" id="p-phone" />
+          <label for="p-location">מיקום</label>
+          <input type="text" id="p-location" />
+          <label for="p-summary">תקציר מקצועי</label>
+          <textarea id="p-summary"></textarea>
+        </div>
+
+        <div class="tab-panel" id="panel-experience">
+          <div id="experience-list"></div>
+          <button type="button" class="btn-secondary" id="add-experience">+ הוסף ניסיון תעסוקתי</button>
+        </div>
+
+        <div class="tab-panel" id="panel-education">
+          <div id="education-list"></div>
+          <button type="button" class="btn-secondary" id="add-education">+ הוסף השכלה</button>
+        </div>
+
+        <div class="tab-panel" id="panel-skills">
+          <label for="p-skills">מיומנויות (מופרדות בפסיק)</label>
+          <textarea id="p-skills"></textarea>
+          <label for="p-languages">שפות (מופרדות בפסיק)</label>
+          <textarea id="p-languages"></textarea>
+        </div>
+
+        <div class="tab-panel" id="panel-projects">
+          <div id="projects-list"></div>
+          <button type="button" class="btn-secondary" id="add-project">+ הוסף פרויקט</button>
+        </div>
+
+        <p id="save-error" class="error-text hidden"></p>
+        <button type="submit" class="btn-primary" id="save-btn">שמירה והמשך</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="/src/profile.js"></script>
+</body>
+</html>

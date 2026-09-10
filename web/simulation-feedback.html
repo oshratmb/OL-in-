@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>דוח משוב - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+  <style>
+    .gauge { position:relative; width:150px; height:150px; margin:0 auto 16px; border-radius:50%; }
+    .gauge-inner { position:absolute; inset:12px; background:var(--card); border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .gauge-inner span { font-size:2rem; font-weight:700; }
+    .gauge-inner small { color:var(--muted); }
+    .qa-block { border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:10px; }
+    .qa-block p { margin:4px 0; font-size:0.9rem; }
+    .qa-block .label { color:var(--muted); font-size:0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card" style="text-align:center;">
+      <h1>דוח המשוב שלכם</h1>
+      <div class="gauge" id="gauge">
+        <div class="gauge-inner"><span id="score-number">-</span><small>/100</small></div>
+      </div>
+      <p id="summary-text" class="subtitle"></p>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="strengths">נקודות חוזק</button>
+        <button class="tab" data-tab="improvements">נקודות לשיפור</button>
+        <button class="tab" data-tab="rewrite">המלצות לניסוח חלופי</button>
+      </div>
+
+      <ul class="tab-panel active" id="panel-strengths" style="padding-inline-start:20px;"></ul>
+      <ul class="tab-panel" id="panel-improvements" style="padding-inline-start:20px;"></ul>
+      <div class="tab-panel" id="panel-rewrite"></div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button type="button" class="btn-primary" id="restart-btn">בצע סימולציה חוזרת</button>
+      <button type="button" class="btn-secondary" id="back-btn">חזרה ללוח הבקרה</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/simulation-feedback.js"></script>
+</body>
+</html>

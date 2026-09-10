@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>אימות דו-שלבי - AI לחיפוש עבודה</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <h1 id="mfa-title">אימות דו-שלבי</h1>
+      <p class="subtitle" id="mfa-subtitle"></p>
+
+      <div id="enroll-section" class="hidden">
+        <img id="qr-image" alt="QR code" style="display:block; margin:0 auto 12px; width:180px; height:180px;" />
+        <p class="hint-text" style="text-align:center;">או הזינו ידנית: <code id="secret-text"></code></p>
+      </div>
+
+      <label for="code-input">קוד בן 6 ספרות</label>
+      <input type="text" id="code-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+      <p id="mfa-error" class="error-text hidden"></p>
+      <button type="button" class="btn-primary" id="confirm-btn">אישור</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/mfa.js"></script>
+</body>
+</html>
