@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse
 
 from .. import config, google_oauth, oauth_state, supabase_client
@@ -71,7 +72,7 @@ async def sync_now(
     user: dict = Depends(get_current_user), _active: dict = Depends(require_active_user)
 ):
     try:
-        sync_user_by_id(user["sub"])
+        await run_in_threadpool(sync_user_by_id, user["sub"])
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     return {"ok": True}

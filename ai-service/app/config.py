@@ -1,3 +1,4 @@
+import base64
 import os
 
 from dotenv import load_dotenv
@@ -8,6 +9,12 @@ SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 SUPABASE_JWT_SECRET = os.environ["SUPABASE_JWT_SECRET"]
+# Supabase's HS256 JWT Signing Key was imported as a Base64-encoded secret,
+# so it actually signs tokens with the *decoded* bytes — not the literal
+# SUPABASE_JWT_SECRET string. Verifying Supabase-issued access tokens (below)
+# must use the same decoded bytes; oauth_state.py's own self-signed/verified
+# state token is unrelated to Supabase and keeps using the raw string.
+SUPABASE_JWT_SIGNING_KEY = base64.b64decode(SUPABASE_JWT_SECRET)
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")

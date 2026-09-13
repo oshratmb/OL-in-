@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from .. import supabase_client
 from ..auth_dependency import get_current_user
@@ -18,8 +19,12 @@ async def submit_manual_email(
     _active: dict = Depends(require_active_user),
 ):
     try:
-        result = process_incoming_email(
-            user_id=user["sub"], subject=body.subject, sender=body.sender, body_text=body.body_content
+        result = await run_in_threadpool(
+            process_incoming_email,
+            user_id=user["sub"],
+            subject=body.subject,
+            sender=body.sender,
+            body_text=body.body_content,
         )
     except ValueError as exc:
         supabase_client.log_error("emails_manual", str(exc))

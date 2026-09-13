@@ -53,6 +53,18 @@ def _handle_oauth_return():
         st.session_state.onb_auth_error = True
         touched = True
 
+    if "google_login_code" in qp:
+        if api.redeem_google_login(qp["google_login_code"]):
+            st.session_state.screen = (
+                nav.DASHBOARD if api.has_completed_onboarding() else nav.ONBOARDING
+            )
+            st.session_state.screen_params = {}
+            if st.session_state.screen == nav.ONBOARDING:
+                st.session_state.onb_stage = "upload"
+        else:
+            st.session_state.onb_auth_error = True
+        touched = True
+
     if qp.get("gmail") == "connected" or "gmail_error" in qp:
         st.session_state.settings_gmail_flag = (
             "connected" if qp.get("gmail") == "connected" else "error"

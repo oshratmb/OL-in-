@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from .. import supabase_client
 from ..auth_dependency import get_current_user
@@ -43,7 +44,7 @@ async def analyze_job(
 ):
     core_profile = _require_core_profile(user["sub"])
     try:
-        result = run_gap_analysis(core_profile, body.description_text)
+        result = await run_in_threadpool(run_gap_analysis, core_profile, body.description_text)
     except ValueError as exc:
         supabase_client.log_error("jobs_analyze", str(exc))
         raise HTTPException(502, "AI analysis returned an unreadable result, please retry") from exc
@@ -60,7 +61,8 @@ async def generate_documents(
     core_profile = _require_core_profile(user_id)
 
     try:
-        result = run_tailoring_with_gatekeeper(
+        result = await run_in_threadpool(
+            run_tailoring_with_gatekeeper,
             core_profile,
             body.job.model_dump(),
             [a.model_dump() for a in body.qna_answers],
@@ -108,7 +110,9 @@ async def translate_documents(
         raise HTTPException(404, "Application not found")
 
     try:
-        translated = run_translation(body.resume.model_dump(), body.cover_letter_text, body.target_language)
+        translated = await run_in_threadpool(
+            run_translation, body.resume.model_dump(), body.cover_letter_text, body.target_language
+        )
     except ValueError as exc:
         supabase_client.log_error("documents_translate", str(exc))
         raise HTTPException(502, "AI translation returned an unreadable result, please retry") from exc

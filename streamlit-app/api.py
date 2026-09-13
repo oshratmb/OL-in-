@@ -184,3 +184,14 @@ def has_completed_onboarding() -> bool:
 
 def google_start_url() -> str:
     return f"{AI_SERVICE_URL}/auth/google/start"
+
+
+def redeem_google_login(code: str) -> bool:
+    """Exchanges the one-time code from the google/callback redirect for a
+    real session, over this same requests.Session — so the refresh cookie
+    that call sets is the one future /auth/refresh calls will actually see."""
+    ok, data, _ = ai_fetch("POST", "/auth/google/redeem", {"code": code}, _retry=False)
+    if not ok:
+        return False
+    set_token(data["access_token"])
+    return True

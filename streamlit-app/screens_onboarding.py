@@ -78,11 +78,6 @@ def _auth_stage():
 
     st.divider()
     st.link_button("התחברות באמצעות Google", api.google_start_url(), use_container_width=True)
-    st.caption(
-        "התחברות Google מסתמכת על מחזור OAuth שמסתיים בעוגיית refresh בדומיין של "
-        "ai-service. היא עובדת רק אם אפליקציית ה-Streamlit רצה באותו origin שהוגדר "
-        "ב-FRONTEND_URL. עבור פיתוח מקומי — השתמשו בהתחברות עם אימייל וסיסמה."
-    )
 
 
 # --------------------------------------------------------------------------- #

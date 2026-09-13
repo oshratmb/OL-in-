@@ -19,10 +19,13 @@ port = 54323
 enabled = true
 file_size_limit = "10MiB"
 
+[storage.vector]
+enabled = false
+
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173", "http://localhost:8000"]
+additional_redirect_urls = ["http://localhost:5173", "http://localhost:8000", "http://localhost:8501"]
 jwt_expiry = 900
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
@@ -32,6 +35,8 @@ password_requirements = "lower_upper_letters_digits_symbols"
 # ponytail: session max-lifetime key name has moved across CLI versions
 # (auth.sessions.timebox in newer CLIs). Verify against `supabase --version`
 # and set the 7-day refresh-token lifetime here if the key differs.
+# Note: `auth.sessions` (session timebox) requires a paid Supabase plan —
+# `supabase config push` will 402 on a Free-tier project until upgraded.
 [auth.sessions]
 timebox = "168h"
 inactivity_timeout = "0"
@@ -40,6 +45,10 @@ inactivity_timeout = "0"
 enable_signup = true
 enable_confirmations = false
 
+# Note: `supabase config push` needs GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/
+# GOOGLE_OAUTH_REDIRECT_URI set in the shell env to resolve the env() refs
+# below (see README step 2) — until then, pushing this project temporarily
+# used enabled = false with blank values instead.
 [auth.external.google]
 enabled = true
 client_id = "env(GOOGLE_CLIENT_ID)"

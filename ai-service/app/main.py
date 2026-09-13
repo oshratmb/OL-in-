@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config, resume_extraction, supabase_client
@@ -62,7 +63,7 @@ async def parse_resume(
         raise HTTPException(422, "Could not extract any text from the uploaded file")
 
     try:
-        parsed = run_resume_parser(text)
+        parsed = await run_in_threadpool(run_resume_parser, text)
     except ValueError as exc:
         supabase_client.log_error("parse_resume", str(exc))
         raise HTTPException(502, "AI parsing returned an unreadable result, please retry") from exc

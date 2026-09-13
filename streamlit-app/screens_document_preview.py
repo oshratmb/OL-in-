@@ -2,6 +2,8 @@
 tone switching and Hebrew/English translation.
 Mirrors document-preview.html + web/src/document-preview.js."""
 
+import re
+
 import streamlit as st
 
 import api
@@ -9,6 +11,31 @@ import nav
 import ui
 
 TONE_LABELS = {"professional": "מקצועי", "enthusiastic": "נלהב", "concise": "תמציתי"}
+LANG_LABELS = {"he": "עברית", "en": "English"}
+
+_HEBREW_RE = re.compile(r"[֐-׿]")
+
+
+def _detect_lang(resume: dict, cover_letter_text: str) -> str:
+    """No language field comes back from the backend, so the language actually
+    displayed is inferred from its own text — the only thing that's ever
+    actually true, regardless of what the caller *expected* to generate."""
+    sample = " ".join(
+        [
+            resume.get("professional_summary") or "",
+            cover_letter_text or "",
+            " ".join(resume.get("skills") or []),
+        ]
+    )
+    return "he" if _HEBREW_RE.search(sample) else "en"
+
+
+def _doc_snapshot(payload: dict) -> dict:
+    return {
+        "resume": payload["resume"],
+        "cover_letter_text": payload["cover_letter_text"],
+        "tailored_resume_url": payload.get("tailored_resume_url"),
+    }
 
 
 def _render_resume(resume: dict):
@@ -60,7 +87,18 @@ def render():
             st.markdown(f"- {violation}")
 
     tone = st.session_state.get("doc_tone", "professional")
-    lang = st.session_state.get("doc_lang", "he")
+
+    # The language actually on screen — detected from `data` itself the first
+    # time this document is shown, never assumed, so the toggle always starts
+    # on whatever language the AI actually generated.
+    if "doc_lang" not in st.session_state:
+        st.session_state.doc_lang = _detect_lang(data["resume"], data["cover_letter_text"])
+    lang = st.session_state.doc_lang
+
+    # Cache of both languages' versions of *this* document, so switching back
+    # and forth after the first translation never re-calls the AI.
+    translations = st.session_state.setdefault("doc_translations", {})
+    translations.setdefault(lang, _doc_snapshot(data))
 
     col_tone, col_lang = st.columns(2)
     with col_tone:
@@ -84,33 +122,50 @@ def render():
                     },
                 )
             if ok:
+                # A regenerated document invalidates any cached translation —
+                # both were of the previous tone's text.
+                new_lang = _detect_lang(upd["resume"], upd["cover_letter_text"])
                 st.session_state.document_result = {**data, **upd}
+                st.session_state.doc_lang = new_lang
+                st.session_state.doc_translations = {new_lang: _doc_snapshot(upd)}
+                st.session_state.pop("doc_lang_toggle", None)
                 st.rerun()
             else:
                 st.error(upd.get("detail", "עדכון הטון נכשל"))
 
     with col_lang:
         st.write("")
-        toggle_label = "תרגם לאנגלית" if lang == "he" else "תרגם לעברית"
-        if st.button(toggle_label):
-            target = "en" if lang == "he" else "he"
-            with st.spinner("מתרגם..."):
-                ok, upd, _ = api.ai_fetch(
-                    "POST",
-                    "/documents/translate",
-                    {
-                        "application_id": data["application_id"],
-                        "resume": data["resume"],
-                        "cover_letter_text": data["cover_letter_text"],
-                        "target_language": target,
-                    },
-                )
-            if ok:
-                st.session_state.document_result = {**data, **upd}
-                st.session_state.doc_lang = target
+        selected_lang = st.segmented_control(
+            "שפת המסמכים",
+            options=["he", "en"],
+            format_func=lambda code: LANG_LABELS[code],
+            default=lang,
+            key="doc_lang_toggle",
+        )
+        if selected_lang and selected_lang != lang:
+            if selected_lang in translations:
+                st.session_state.document_result = {**data, **translations[selected_lang]}
+                st.session_state.doc_lang = selected_lang
                 st.rerun()
             else:
-                st.error(upd.get("detail", "התרגום נכשל"))
+                with st.spinner("מתרגם..."):
+                    ok, upd, _ = api.ai_fetch(
+                        "POST",
+                        "/documents/translate",
+                        {
+                            "application_id": data["application_id"],
+                            "resume": data["resume"],
+                            "cover_letter_text": data["cover_letter_text"],
+                            "target_language": selected_lang,
+                        },
+                    )
+                if ok:
+                    translations[selected_lang] = _doc_snapshot(upd)
+                    st.session_state.document_result = {**data, **upd}
+                    st.session_state.doc_lang = selected_lang
+                    st.rerun()
+                else:
+                    st.error(upd.get("detail", "התרגום נכשל"))
 
     tab_resume, tab_letter = st.tabs(["קורות חיים מותאמים", "מכתב מקדים"])
     with tab_resume:
@@ -123,6 +178,6 @@ def render():
 
     st.divider()
     if st.button("חזרה ללוח"):
-        for key in ("document_result", "doc_tone", "doc_lang"):
+        for key in ("document_result", "doc_tone", "doc_lang", "doc_translations", "doc_lang_toggle"):
             st.session_state.pop(key, None)
         nav.go(nav.DASHBOARD)

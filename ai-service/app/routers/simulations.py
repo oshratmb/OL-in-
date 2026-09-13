@@ -1,6 +1,7 @@
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from .. import simulation_service, supabase_client
 from ..auth_dependency import get_current_user
@@ -23,7 +24,9 @@ async def start(
     _active: dict = Depends(require_active_user),
 ):
     try:
-        result = simulation_service.start_simulation(user["sub"], body.application_id)
+        result = await run_in_threadpool(
+            simulation_service.start_simulation, user["sub"], body.application_id
+        )
     except ValueError as exc:
         raise HTTPException(404, str(exc)) from exc
     return result
@@ -37,7 +40,9 @@ async def answer(
     _active: dict = Depends(require_active_user),
 ):
     try:
-        return simulation_service.submit_answer(simulation_id, user["sub"], body.answer)
+        return await run_in_threadpool(
+            simulation_service.submit_answer, simulation_id, user["sub"], body.answer
+        )
     except ValueError as exc:
         raise HTTPException(404, str(exc)) from exc
 
@@ -49,7 +54,9 @@ async def feedback(
     _active: dict = Depends(require_active_user),
 ):
     try:
-        return simulation_service.generate_feedback(simulation_id, user["sub"])
+        return await run_in_threadpool(
+            simulation_service.generate_feedback, simulation_id, user["sub"]
+        )
     except ValueError as exc:
         raise HTTPException(404, str(exc)) from exc
     except RuntimeError as exc:

@@ -10,7 +10,7 @@ def _decode(authorization: str) -> tuple[dict, str]:
     token = authorization.removeprefix("Bearer ")
     try:
         payload = jwt.decode(
-            token, config.SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated"
+            token, config.SUPABASE_JWT_SIGNING_KEY, algorithms=["HS256"], audience="authenticated"
         )
     except jwt.PyJWTError as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"Invalid token: {exc}") from exc

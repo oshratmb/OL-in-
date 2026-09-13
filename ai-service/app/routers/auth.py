@@ -1,3 +1,6 @@
+import secrets
+import time
+
 import jwt
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
@@ -10,6 +13,41 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 REFRESH_COOKIE = "sb_refresh_token"
 VERIFIER_COOKIE = "sb_oauth_verifier"
+
+# The web frontend's own JS shares the browser's cookie jar with the redirect
+# chain above, so the Set-Cookie in google_callback is enough for it. A
+# server-rendered frontend (e.g. the Streamlit UI) makes its own outbound
+# HTTP calls from a separate process/session that never sees that cookie, so
+# google_callback also stashes the session here under a one-time opaque code
+# and hands the code to the frontend via a query param; /auth/google/redeem
+# lets that frontend's own backend exchange it for a real session (and pick
+# up the cookie itself, over a normal server-to-server call).
+_PENDING_GOOGLE_SESSIONS: dict[str, tuple[float, dict]] = {}
+_GOOGLE_CODE_TTL_SECONDS = 120
+
+
+def _stash_google_session(session: dict) -> str:
+    now = time.monotonic()
+    for stale_code, (stashed_at, _) in list(_PENDING_GOOGLE_SESSIONS.items()):
+        if now - stashed_at > _GOOGLE_CODE_TTL_SECONDS:
+            del _PENDING_GOOGLE_SESSIONS[stale_code]
+    code = secrets.token_urlsafe(24)
+    _PENDING_GOOGLE_SESSIONS[code] = (now, session)
+    return code
+
+
+def _pop_google_session(code: str) -> dict | None:
+    entry = _PENDING_GOOGLE_SESSIONS.pop(code, None)
+    if entry is None:
+        return None
+    stashed_at, session = entry
+    if time.monotonic() - stashed_at > _GOOGLE_CODE_TTL_SECONDS:
+        return None
+    return session
+
+
+class GoogleRedeemBody(BaseModel):
+    code: str
 
 
 class SignUpBody(BaseModel):
@@ -49,7 +87,7 @@ async def _mfa_gate(session: dict) -> dict | None:
     try:
         payload = jwt.decode(
             session["access_token"],
-            config.SUPABASE_JWT_SECRET,
+            config.SUPABASE_JWT_SIGNING_KEY,
             algorithms=["HS256"],
             audience="authenticated",
         )
@@ -178,11 +216,26 @@ async def google_callback(request: Request, code: str | None = None, error: str 
 
     # index.html's own init() calls /auth/refresh on load, which reads the
     # HttpOnly cookie we're about to set — no need to hand the token through
-    # the URL at all.
-    resp = RedirectResponse(f"{config.FRONTEND_URL}/index.html")
+    # the URL at all. A one-time redemption code rides along too, for a
+    # frontend (Streamlit) whose own /auth/refresh call can't see that cookie.
+    google_login_code = _stash_google_session(session)
+    resp = RedirectResponse(
+        f"{config.FRONTEND_URL}/index.html?google_login_code={google_login_code}"
+    )
     _set_refresh_cookie(resp, session["refresh_token"])
     resp.delete_cookie(VERIFIER_COOKIE, path="/auth")
     return resp
+
+
+@router.post("/google/redeem")
+async def google_redeem(body: GoogleRedeemBody, response: Response):
+    """One-time exchange of the code from the google/callback redirect for a
+    real session — for a frontend whose HTTP client didn't take part in that
+    browser redirect chain, so never received the refresh cookie directly."""
+    session = _pop_google_session(body.code)
+    if session is None:
+        raise HTTPException(400, "Invalid or expired code")
+    return _session_response(session, response)
 
 
 @router.post("/mfa/enroll")
