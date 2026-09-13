@@ -9,6 +9,8 @@ WARNING = "#e0a52c"
 DANGER = "#d64545"
 BORDER = "#e2e5ec"
 
+GRADIENT = f"linear-gradient(135deg, {PRIMARY} 0%, #6a4cf0 100%)"
+
 _CSS = f"""
 <style>
   .stApp, .block-container {{ direction: rtl; }}
@@ -25,6 +27,36 @@ _CSS = f"""
   }}
   [data-testid="stMetricValue"] {{ direction: ltr; text-align: right; }}
   div[data-testid="stExpander"] details {{ border-radius: 10px; }}
+
+  /* Marketing landing page */
+  .hero {{
+    background: {GRADIENT}; color: #fff; border-radius: 20px;
+    padding: 2.6rem 2.2rem; margin-bottom: 1.6rem;
+    box-shadow: 0 12px 30px -12px rgba(47,111,237,0.55);
+  }}
+  .hero h1 {{ color: #fff !important; font-size: 2.1rem; margin: 0 0 .5rem; }}
+  .hero p {{ color: rgba(255,255,255,0.92) !important; font-size: 1.05rem; margin: 0; }}
+  .feature-grid {{
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem;
+    margin: 1.6rem 0 2rem;
+  }}
+  @media (max-width: 700px) {{ .feature-grid {{ grid-template-columns: repeat(2, 1fr); }} }}
+  .feature-card {{
+    background: #fff; border: 1px solid {BORDER}; border-radius: 14px;
+    padding: 1rem .9rem; text-align: center;
+  }}
+  .feature-card .icon {{ font-size: 1.6rem; display: block; margin-bottom: .4rem; }}
+  .feature-card .label {{ font-size: .82rem; font-weight: 600; color: #333; line-height: 1.3; }}
+  div[data-testid="stFormSubmitButton"] button,
+  .stButton button[kind="primary"] {{
+    background: {GRADIENT} !important; border: none !important;
+    border-radius: 10px !important; font-weight: 700 !important;
+  }}
+  div[data-testid="stFormSubmitButton"] button:hover,
+  .stButton button[kind="primary"]:hover {{ filter: brightness(1.08); }}
+  [data-testid="stLinkButton"] a {{
+    border-radius: 10px !important; font-weight: 600 !important;
+  }}
 </style>
 """
 
@@ -42,6 +74,33 @@ def header(title, subtitle=None):
     st.markdown(f"## {title}")
     if subtitle:
         st.caption(subtitle)
+
+
+_FEATURES = [
+    ("🤖", "ניתוח קורות חיים חכם"),
+    ("🎯", "התאמת מסמכים AI לכל משרה"),
+    ("📊", "לוח מעקב מועמדויות"),
+    ("🎤", "סימולטור ראיונות עם משוב"),
+]
+
+
+def landing_hero():
+    st.markdown(
+        """
+        <div class="hero">
+          <h1>פלטפורמת חיפוש העבודה החכמה שלך</h1>
+          <p>AI שמנתח את קורות החיים שלכם, מתאים אותם לכל משרה, ומכין אתכם
+          לראיון — משלב החיפוש הראשון ועד קבלת ההצעה.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    cards = "".join(
+        f'<div class="feature-card"><span class="icon">{icon}</span>'
+        f'<span class="label">{label}</span></div>'
+        for icon, label in _FEATURES
+    )
+    st.markdown(f'<div class="feature-grid">{cards}</div>', unsafe_allow_html=True)
 
 
 def progress(pct: float):

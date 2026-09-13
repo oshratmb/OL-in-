@@ -30,54 +30,57 @@ def _validate_password(pw: str):
 # stage: auth
 # --------------------------------------------------------------------------- #
 def _auth_stage():
-    ui.header("ברוכים הבאים", "התחברות או הרשמה כדי להתחיל בבניית קורות החיים החכמים שלכם")
-    ui.progress(33)
+    ui.landing_hero()
 
     if st.session_state.pop("onb_auth_error", None):
         st.error("ההתחברות באמצעות Google נכשלה, נסו שוב")
 
-    mode = st.radio(
-        "מצב", ["הרשמה", "התחברות"], horizontal=True, label_visibility="collapsed"
-    )
-    signup = mode == "הרשמה"
+    with st.container(border=True):
+        mode = st.segmented_control("איך תרצו להתחיל?", ["הרשמה", "התחברות"], default="הרשמה")
+        signup = mode != "התחברות"
 
-    with st.form("auth_form"):
-        email = st.text_input("אימייל")
-        password = st.text_input("סיסמה", type="password")
-        name = st.text_input("שם מלא") if signup else ""
-        if signup:
-            st.caption("הסיסמה חייבת לכלול: לפחות 8 תווים, אות קטנה, אות גדולה, ספרה ותו מיוחד")
-        submitted = st.form_submit_button("הרשמה" if signup else "התחברות", type="primary")
-
-    if submitted:
-        try:
+        with st.form("auth_form"):
+            email = st.text_input("אימייל")
+            password = st.text_input("סיסמה", type="password")
+            name = st.text_input("שם מלא") if signup else ""
             if signup:
-                problems = _validate_password(password)
-                if problems:
-                    st.error("הסיסמה חסרה: " + ", ".join(problems))
-                    st.stop()
-                api.sign_up(email.strip(), password, name.strip())
-                st.session_state.onb_stage = "upload"
-                st.rerun()
-            else:
-                result = api.log_in(email.strip(), password)
-                if result["status"] == "ok":
-                    if api.has_completed_onboarding():
-                        nav.go(nav.DASHBOARD)
+                st.caption("הסיסמה חייבת לכלול: לפחות 8 תווים, אות קטנה, אות גדולה, ספרה ותו מיוחד")
+            submitted = st.form_submit_button(
+                "הרשמה" if signup else "התחברות", type="primary", use_container_width=True
+            )
+
+        if submitted:
+            try:
+                if signup:
+                    problems = _validate_password(password)
+                    if problems:
+                        st.error("הסיסמה חסרה: " + ", ".join(problems))
+                        st.stop()
+                    api.sign_up(email.strip(), password, name.strip())
                     st.session_state.onb_stage = "upload"
                     st.rerun()
                 else:
-                    nav.go(
-                        nav.MFA,
-                        mode="enroll" if result["status"] == "mfa_enrollment_required" else "challenge",
-                        temp_access_token=result["temp_access_token"],
-                        factor_id=result.get("factor_id"),
-                    )
-        except api.ApiError as exc:
-            st.error(str(exc))
+                    result = api.log_in(email.strip(), password)
+                    if result["status"] == "ok":
+                        if api.has_completed_onboarding():
+                            nav.go(nav.DASHBOARD)
+                        st.session_state.onb_stage = "upload"
+                        st.rerun()
+                    else:
+                        nav.go(
+                            nav.MFA,
+                            mode="enroll" if result["status"] == "mfa_enrollment_required" else "challenge",
+                            temp_access_token=result["temp_access_token"],
+                            factor_id=result.get("factor_id"),
+                        )
+            except api.ApiError as exc:
+                st.error(str(exc))
 
-    st.divider()
-    st.link_button("התחברות באמצעות Google", api.google_start_url(), use_container_width=True)
+        st.divider()
+        st.link_button(
+            "התחברות באמצעות Google", api.google_start_url(), use_container_width=True
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # --------------------------------------------------------------------------- #
@@ -85,7 +88,7 @@ def _auth_stage():
 # --------------------------------------------------------------------------- #
 def _upload_stage():
     ui.header("העלאת קורות חיים", "קובץ PDF או Word (.docx). ה-AI יחלץ ממנו את הפרטים לאישורכם.")
-    ui.progress(66)
+    ui.progress(50)
 
     uploaded = st.file_uploader("גררו לכאן קובץ, או בחרו קובץ", type=["pdf", "docx"])
 
