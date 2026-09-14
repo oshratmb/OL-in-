@@ -31,11 +31,23 @@ def _validate_password(pw: str):
 # --------------------------------------------------------------------------- #
 def _auth_stage():
     ui.landing_hero()
+    ui.how_it_works()
+
+    st.markdown(
+        """
+        <div style="text-align:center;max-width:640px;margin:0 auto .5rem;">
+          <div class="section-title">הצטרפו לפלטפורמה החכמה</div>
+          <div class="section-sub">התחילו את מסע חיפוש העבודה המדויק והמקצועי ביותר שלכם</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     if st.session_state.pop("onb_auth_error", None):
         st.error("ההתחברות באמצעות Google נכשלה, נסו שוב")
 
-    with st.container(border=True):
+    _, card_col, _ = st.columns([1, 2, 1])
+    with card_col, st.container(border=True):
         mode = st.segmented_control("איך תרצו להתחיל?", ["הרשמה", "התחברות"], default="הרשמה")
         signup = mode != "התחברות"
 
@@ -46,7 +58,9 @@ def _auth_stage():
             if signup:
                 st.caption("הסיסמה חייבת לכלול: לפחות 8 תווים, אות קטנה, אות גדולה, ספרה ותו מיוחד")
             submitted = st.form_submit_button(
-                "הרשמה" if signup else "התחברות", type="primary", use_container_width=True
+                "יצירת חשבון חינם" if signup else "התחברות למערכת",
+                type="primary",
+                use_container_width=True,
             )
 
         if submitted:
@@ -80,7 +94,9 @@ def _auth_stage():
         st.link_button(
             "התחברות באמצעות Google", api.google_start_url(), use_container_width=True
         )
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.caption(
+            "בלחיצה על הרשמה הנכם מסכימים לתנאי השימוש ולמדיניות הפרטיות"
+        )
 
 
 # --------------------------------------------------------------------------- #
