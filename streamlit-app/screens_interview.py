@@ -134,6 +134,16 @@ def _submit_audio_answer(audio_value):
     _apply_answer_result(data)
 
 
+def _clear_sim_state():
+    for key in list(st.session_state.keys()):
+        if key.startswith(("sim_", "typed_answer_", "answer_audio_")) or key in (
+            "last_audio_id",
+            "answer_mode",
+            "interview_app_id",
+        ):
+            st.session_state.pop(key, None)
+
+
 def _finish_interview():
     with st.spinner("מכין משוב..."):
         ok, data, _ = api.ai_fetch("POST", f"/simulations/{st.session_state.sim_id}/feedback")
@@ -141,12 +151,7 @@ def _finish_interview():
         st.error(data.get("detail", "הפקת המשוב נכשלה"))
         return
     sim_id = st.session_state.sim_id
-    for key in list(st.session_state.keys()):
-        if key.startswith(("sim_", "typed_answer_", "answer_audio_")) or key in (
-            "last_audio_id",
-            "answer_mode",
-        ):
-            st.session_state.pop(key, None)
+    _clear_sim_state()
     nav.go(nav.FEEDBACK, simulation_id=sim_id)
 
 
@@ -156,6 +161,10 @@ def render():
         nav.go(nav.DASHBOARD)
     st.session_state.interview_app_id = app_id
 
+    if st.button("← חזרה ללוח", key="interview_back_top"):
+        _clear_sim_state()
+        nav.go(nav.DASHBOARD)
+
     if not st.session_state.get("sim_started"):
         with st.spinner("מתחילים סימולציית ראיון..."):
             ok, data, _ = api.ai_fetch(
@@ -163,8 +172,6 @@ def render():
             )
         if not ok:
             st.error(data.get("detail", "התחלת הסימולציה נכשלה"))
-            if st.button("חזרה ללוח"):
-                nav.go(nav.DASHBOARD)
             return
         st.session_state.sim_id = data["simulation_id"]
         st.session_state.sim_persona = data["persona_role_title"]
