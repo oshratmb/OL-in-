@@ -30,9 +30,23 @@ def _validate_password(pw: str):
 # stage: auth
 # --------------------------------------------------------------------------- #
 def _auth_stage():
+    # Top-left corner nav: jump straight to the auth card below, with the
+    # matching tab already selected — instead of making people scroll and
+    # then also pick the tab themselves.
+    _, nav_login_col, nav_signup_col = st.columns([6, 1, 1])
+    if nav_login_col.button("התחברות", key="nav_login", type="tertiary"):
+        st.session_state.landing_auth_mode = "התחברות"
+        st.session_state.scroll_to_auth = True
+        st.rerun()
+    if nav_signup_col.button("הרשמה", key="nav_signup", type="primary"):
+        st.session_state.landing_auth_mode = "הרשמה"
+        st.session_state.scroll_to_auth = True
+        st.rerun()
+
     ui.landing_hero()
     ui.how_it_works()
 
+    st.markdown('<div id="auth-card"></div>', unsafe_allow_html=True)
     st.markdown(
         """
         <div style="text-align:center;max-width:640px;margin:0 auto .5rem;">
@@ -46,9 +60,17 @@ def _auth_stage():
     if st.session_state.pop("onb_auth_error", None):
         st.error("ההתחברות באמצעות Google נכשלה, נסו שוב")
 
+    # Streamlit warns if a widget's `default` and its Session State value are
+    # both set on the same run, so the initial default is seeded into state
+    # here instead of passed to the widget below.
+    st.session_state.setdefault("auth_mode", "הרשמה")
+    pending_mode = st.session_state.pop("landing_auth_mode", None)
+    if pending_mode:
+        st.session_state["auth_mode"] = pending_mode
+
     _, card_col, _ = st.columns([1, 2, 1])
     with card_col, st.container(border=True):
-        mode = st.segmented_control("איך תרצו להתחיל?", ["הרשמה", "התחברות"], default="הרשמה")
+        mode = st.segmented_control("איך תרצו להתחיל?", ["הרשמה", "התחברות"], key="auth_mode")
         signup = mode != "התחברות"
 
         with st.form("auth_form"):
@@ -102,6 +124,9 @@ def _auth_stage():
         st.caption(
             "בלחיצה על הרשמה הנכם מסכימים לתנאי השימוש ולמדיניות הפרטיות"
         )
+
+    if st.session_state.pop("scroll_to_auth", False):
+        ui.scroll_to_anchor("auth-card")
 
 
 # --------------------------------------------------------------------------- #

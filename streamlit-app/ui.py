@@ -205,6 +205,45 @@ def try_restore_remember_token():
     )
 
 
+def scroll_to_anchor(anchor_id: str):
+    """Smooth-scrolls to an element id rendered earlier this run (e.g. via
+    ``st.markdown(f'<div id="{anchor_id}"></div>')``). Native ``#fragment``
+    URL scrolling isn't reliable here since Streamlit repaints the page
+    asynchronously — this iframe's own script can easily run before the
+    browser has finished laying out that repaint, so instead of a single
+    immediate ``scrollIntoView`` attempt (reachable through the iframe's
+    ``allow-same-origin`` access to the top document, same as the other
+    browser-bridge helpers above), it polls briefly until the element's
+    position has actually settled."""
+    components.html(
+        f"""<script>
+        try {{
+          var tries = 0, lastY = null, stableCount = 0;
+          var iv = setInterval(function() {{
+            tries++;
+            var el = window.top.document.getElementById({json.dumps(anchor_id)});
+            if (el) {{
+              var y = el.getBoundingClientRect().top;
+              if (lastY !== null && Math.abs(y - lastY) < 1) {{
+                stableCount++;
+              }} else {{
+                stableCount = 0;
+              }}
+              lastY = y;
+              if (stableCount >= 2 || tries > 30) {{
+                el.scrollIntoView({{behavior: 'smooth', block: 'start'}});
+                clearInterval(iv);
+              }}
+            }} else if (tries > 30) {{
+              clearInterval(iv);
+            }}
+          }}, 100);
+        }} catch (e) {{}}
+        </script>""",
+        height=0,
+    )
+
+
 _FEATURES = [
     ("document_scanner", "ניתוח קורות חיים חכם", "ה-AI סורק את קורות החיים שלכם ומחלץ את הפרטים אוטומטית"),
     ("tune", "התאמת מסמכים לכל משרה", "קורות חיים ומכתב מקדים מותאמים אישית, עם בדיקת עובדות"),
