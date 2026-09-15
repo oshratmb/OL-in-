@@ -24,8 +24,16 @@ enabled = false
 
 [auth]
 enabled = true
-site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173", "http://localhost:8000", "http://localhost:8501"]
+site_url = "https://olin.lironlm.com"
+additional_redirect_urls = [
+  "http://localhost:5173",
+  "http://localhost:8000",
+  "http://localhost:8501",
+  "https://olin.lironlm.com",
+  "https://olin-api.azurewebsites.net",
+  "https://olin-api.azurewebsites.net/auth/google/callback",
+  "https://olin-api.azurewebsites.net/gmail/connect/callback",
+]
 jwt_expiry = 900
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
@@ -47,8 +55,7 @@ enable_confirmations = false
 
 # Note: `supabase config push` needs GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/
 # GOOGLE_OAUTH_REDIRECT_URI set in the shell env to resolve the env() refs
-# below (see README step 2) — until then, pushing this project temporarily
-# used enabled = false with blank values instead.
+# below (see README step 2) — pass them inline when running the push.
 [auth.external.google]
 enabled = true
 client_id = "env(GOOGLE_CLIENT_ID)"
