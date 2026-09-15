@@ -9,6 +9,11 @@ import ui
 
 
 def render():
+    if st.button("← חזרה ללוח"):
+        st.session_state.pop("job_analysis", None)
+        st.session_state.pop("job_desc_text", None)
+        nav.go(nav.DASHBOARD)
+
     ui.header("הוספת משרה חדשה", "הדביקו את תיאור המשרה המלא. ה-AI ינתח את מידת ההתאמה שלכם ואת הפערים.")
 
     jd_text = st.text_area("תיאור המשרה", height=260, key="jd_text")

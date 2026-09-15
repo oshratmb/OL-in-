@@ -95,15 +95,49 @@ def _motivation_strip(applications):
         st.info(f"🔥 {active} משרות פעילות בתהליך. ממשיכים קדימה!")
 
 
-def _sync_and_unlinked():
-    if st.button("🔄 סנכרן אימיילים עכשיו"):
-        with st.spinner("מסנכרן..."):
-            ok, data, _ = api.ai_fetch("POST", "/gmail/sync-now")
-        if ok:
-            st.success("הסנכרון הושלם")
-            st.rerun()
+def _gmail_connect_cta(needs_reconnect=False):
+    """Shown in place of the sync button when Gmail isn't connected (or its
+    connection expired) — sync-now would otherwise surface a raw English
+    backend error ("Gmail is not connected for this user"), which isn't
+    actionable for the user. A connect call-to-action is."""
+    with st.container(border=True):
+        if needs_reconnect:
+            st.markdown("#### 🔄 נדרש חיבור מחדש ל-Gmail")
+            st.caption("החיבור לג'ימייל פג — חברו מחדש כדי להמשיך לקבל עדכונים אוטומטיים על המשרות שלכם.")
+            btn_label = "🔗 חיבור מחדש ל-Gmail"
         else:
-            st.error(data.get("detail", "הסנכרון נכשל"))
+            st.markdown("#### 📧 חברו את הג'ימייל שלכם")
+            st.caption(
+                "חברו את הג'ימייל שלכם עכשיו ותוכלו להיות מעודכנים אוטומטית על כל "
+                "תשובה מהמעסיקים — בלי לפספס אף מייל."
+            )
+            btn_label = "🔗 חיבור Gmail עכשיו"
+
+        if st.button(btn_label, type="primary", key="dash_gmail_connect"):
+            ok, data, _ = api.ai_fetch("POST", "/gmail/connect/start")
+            if ok and data.get("authorize_url"):
+                st.session_state.dash_gmail_authorize_url = data["authorize_url"]
+            else:
+                st.error(data.get("detail", "לא ניתן להתחיל חיבור Gmail"))
+        if st.session_state.get("dash_gmail_authorize_url"):
+            st.link_button("המשך לאישור בחלון Google", st.session_state.dash_gmail_authorize_url)
+
+
+def _sync_and_unlinked():
+    ok_status, status, _ = api.ai_fetch("GET", "/gmail/status")
+    connected = ok_status and status.get("connected") and not status.get("needs_reconnect")
+
+    if connected:
+        if st.button("🔄 סנכרן אימיילים עכשיו"):
+            with st.spinner("מסנכרן..."):
+                ok, data, _ = api.ai_fetch("POST", "/gmail/sync-now")
+            if ok:
+                st.success("הסנכרון הושלם")
+                st.rerun()
+            else:
+                st.error(data.get("detail", "הסנכרון נכשל"))
+    else:
+        _gmail_connect_cta(needs_reconnect=bool(ok_status and status.get("needs_reconnect")))
 
     ok, emails, _ = api.ai_fetch("GET", "/emails/unlinked")
     if not (ok and emails):

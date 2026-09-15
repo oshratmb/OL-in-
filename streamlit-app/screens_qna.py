@@ -50,6 +50,11 @@ def render():
         _generate(pending)
         return
 
+    if st.button("← ביטול וחזרה ללוח"):
+        for key in ("pending_job", "qna_idx", "qna_answers", "qna_show_tip"):
+            st.session_state.pop(key, None)
+        nav.go(nav.DASHBOARD)
+
     ui.header("השלמת פערים", "כמה שאלות קצרות שיעזרו ל-AI להתאים את קורות החיים למשרה. אפשר לדלג על כל שאלה.")
     ui.progress(idx / len(questions) * 100)
 
