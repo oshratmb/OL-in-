@@ -215,6 +215,7 @@ class SubmitAnswerRequest(BaseModel):
 class SubmitAnswerResponse(BaseModel):
     done: bool
     question: str | None = None
+    transcript: str | None = None
 
 
 class ChatMessage(BaseModel):

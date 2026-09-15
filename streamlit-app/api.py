@@ -114,6 +114,26 @@ def ai_fetch(method, path, json_body=None, data=None, headers=None, _retry=True)
     return _parse(resp)
 
 
+def ai_upload(path, files, _retry=True):
+    """Like ``ai_fetch`` but for multipart file uploads (e.g. a recorded
+    interview answer) — ``requests`` needs a separate ``files=`` kwarg rather
+    than ``json=``/``data=`` for these."""
+    hdrs = {}
+    token = get_token()
+    if token:
+        hdrs["Authorization"] = f"Bearer {token}"
+    try:
+        resp = _http().request(
+            "POST", f"{AI_SERVICE_URL}{path}", files=files, headers=hdrs, timeout=TIMEOUT
+        )
+    except requests.RequestException as exc:
+        return False, {"detail": f"לא ניתן להתחבר לשרת ה-AI: {exc}"}, 0
+
+    if resp.status_code == 401 and _retry and _refresh():
+        return ai_upload(path, files, _retry=False)
+    return _parse(resp)
+
+
 def supabase_fetch(method, path, json_body=None, data=None, headers=None, _retry=True):
     if not SUPABASE_URL:
         return False, {"detail": "SUPABASE_URL אינו מוגדר"}, 0
