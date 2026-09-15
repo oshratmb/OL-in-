@@ -35,7 +35,18 @@ def sync_one_connection(connection: dict) -> None:
         print(f"[sync_gmail] user {user_id}: refresh failed, marked needs_reconnect", file=sys.stderr)
         return
 
-    for message_id in list_new_message_ids(access_token, after_ts):
+    try:
+        message_ids = list_new_message_ids(access_token, after_ts)
+    except httpx.HTTPStatusError as exc:
+        # Distinct from a bad refresh token above: this is a systemic/project-
+        # level failure (e.g. the Gmail API not being enabled for the Google
+        # Cloud project behind GOOGLE_CLIENT_ID) rather than anything this
+        # one user's reconnecting would fix, so it isn't flagged the same way.
+        supabase_client.log_error("sync_gmail", f"user {user_id}: listing messages failed: {exc}")
+        print(f"[sync_gmail] user {user_id}: listing messages failed: {exc}", file=sys.stderr)
+        raise RuntimeError("Gmail sync failed while listing messages, please try again later") from exc
+
+    for message_id in message_ids:
         try:
             message = get_message(access_token, message_id)
             process_incoming_email(

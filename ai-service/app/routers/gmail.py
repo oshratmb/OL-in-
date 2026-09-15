@@ -75,4 +75,6 @@ async def sync_now(
         await run_in_threadpool(sync_user_by_id, user["sub"])
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(502, str(exc)) from exc
     return {"ok": True}
