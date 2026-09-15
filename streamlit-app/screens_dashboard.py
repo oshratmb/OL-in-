@@ -99,7 +99,12 @@ def _gmail_connect_cta(needs_reconnect=False):
     """Shown in place of the sync button when Gmail isn't connected (or its
     connection expired) — sync-now would otherwise surface a raw English
     backend error ("Gmail is not connected for this user"), which isn't
-    actionable for the user. A connect call-to-action is."""
+    actionable for the user. A connect call-to-action is.
+
+    The authorize URL is fetched eagerly (it's a cheap, side-effect-free call
+    that just builds a Google URL) so the button itself is a real link
+    straight to Google's consent screen — one click, not a click to fetch
+    the link followed by a second click to use it."""
     with st.container(border=True):
         if needs_reconnect:
             st.markdown("#### 🔄 נדרש חיבור מחדש ל-Gmail")
@@ -113,14 +118,11 @@ def _gmail_connect_cta(needs_reconnect=False):
             )
             btn_label = "🔗 חיבור Gmail עכשיו"
 
-        if st.button(btn_label, type="primary", key="dash_gmail_connect"):
-            ok, data, _ = api.ai_fetch("POST", "/gmail/connect/start")
-            if ok and data.get("authorize_url"):
-                st.session_state.dash_gmail_authorize_url = data["authorize_url"]
-            else:
-                st.error(data.get("detail", "לא ניתן להתחיל חיבור Gmail"))
-        if st.session_state.get("dash_gmail_authorize_url"):
-            st.link_button("המשך לאישור בחלון Google", st.session_state.dash_gmail_authorize_url)
+        ok, data, _ = api.ai_fetch("POST", "/gmail/connect/start")
+        if ok and data.get("authorize_url"):
+            st.link_button(btn_label, data["authorize_url"], type="primary")
+        else:
+            st.error(data.get("detail", "לא ניתן להתחיל חיבור Gmail"))
 
 
 def _sync_and_unlinked():

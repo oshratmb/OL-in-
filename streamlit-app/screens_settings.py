@@ -38,16 +38,11 @@ def _gmail_card():
                 st.rerun()
         else:
             st.write("Gmail אינו מחובר")
-            if st.button("חבר את Gmail"):
-                ok2, data, _ = api.ai_fetch("POST", "/gmail/connect/start")
-                if ok2 and data.get("authorize_url"):
-                    st.session_state.gmail_authorize_url = data["authorize_url"]
-                else:
-                    st.error(data.get("detail", "לא ניתן להתחיל חיבור Gmail"))
-            if st.session_state.get("gmail_authorize_url"):
-                st.link_button(
-                    "המשך לאישור בחלון Google", st.session_state.gmail_authorize_url
-                )
+            ok2, data, _ = api.ai_fetch("POST", "/gmail/connect/start")
+            if ok2 and data.get("authorize_url"):
+                st.link_button("חבר את Gmail", data["authorize_url"], type="primary")
+            else:
+                st.error(data.get("detail", "לא ניתן להתחיל חיבור Gmail"))
 
 
 def _manual_email_card():
