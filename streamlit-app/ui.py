@@ -6,7 +6,10 @@ a design generated in Google Stitch against this project's own design
 system ("Professional Pipeline") — see streamlit-app/README.md.
 """
 
+import json
+
 import streamlit as st
+import streamlit.components.v1 as components
 
 PRIMARY = "#0d6efd"
 PRIMARY_HOVER = "#0b5ed7"
@@ -130,6 +133,76 @@ def header(title, subtitle=None):
     st.markdown(f"## {title}")
     if subtitle:
         st.caption(subtitle)
+
+
+# --------------------------------------------------------------------------- #
+# "stay signed in" — bridges a persisted session into browser localStorage.
+#
+# Each Streamlit session lives only as long as its one browser tab's
+# websocket connection: the HttpOnly refresh-token cookie ai-service sets
+# is captured by that tab's own server-side ``requests.Session`` (see
+# api.py's module docstring), never by the actual browser. A full-page
+# navigation away and back (an OAuth redirect, a new tab, reopening the
+# site tomorrow) starts a brand new session with none of that — so
+# "remember me" needs a credential the real browser holds itself.
+# --------------------------------------------------------------------------- #
+_REMEMBER_KEY = "olin_remember_token"
+
+
+def persist_remember_token(token: str):
+    """Call right after a login/signup/Google-redeem that returned a
+    ``remember_token`` — stores it in the browser's own localStorage."""
+    if not token:
+        return
+    components.html(
+        f"<script>try{{localStorage.setItem({json.dumps(_REMEMBER_KEY)},"
+        f"{json.dumps(token)});}}catch(e){{}}</script>",
+        height=0,
+    )
+
+
+def clear_remember_token():
+    """Call on explicit logout, so a stale token doesn't silently sign the
+    user back in on their next visit."""
+    components.html(
+        f"<script>try{{localStorage.removeItem({json.dumps(_REMEMBER_KEY)});}}"
+        "catch(e){}</script>",
+        height=0,
+    )
+
+
+def try_restore_remember_token():
+    """Call once per unauthenticated page load. A fresh Streamlit session has
+    no way to read the browser's localStorage directly (see module note
+    above) — so if a token is there, this reloads the page once with it
+    added to the URL, preserving whatever other query params are already on
+    it (e.g. an OAuth-return ``gmail=connected``), for app.py's
+    ``_handle_oauth_return`` to pick up on that next load.
+
+    Streamlit's ``components.html`` iframe is sandboxed without
+    ``allow-top-navigation``, so ``window.top.location = ...`` is silently
+    blocked here — it does have ``allow-same-origin`` though, so instead this
+    creates and clicks a real link *inside the top document itself*; that
+    click, and the navigation it causes, runs in the top frame's own
+    (unsandboxed) context rather than this iframe's."""
+    components.html(
+        f"""<script>
+        try {{
+          var t = localStorage.getItem({json.dumps(_REMEMBER_KEY)});
+          if (t) {{
+            var url = new URL(window.top.location.href);
+            if (!url.searchParams.has('remember_token')) {{
+              url.searchParams.set('remember_token', t);
+              var a = window.top.document.createElement('a');
+              a.href = url.toString();
+              window.top.document.body.appendChild(a);
+              a.click();
+            }}
+          }}
+        }} catch (e) {{}}
+        </script>""",
+        height=0,
+    )
 
 
 _FEATURES = [

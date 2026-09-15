@@ -54,15 +54,32 @@ def _handle_oauth_return():
         touched = True
 
     if "google_login_code" in qp:
-        if api.redeem_google_login(qp["google_login_code"]):
+        ok, remember_token = api.redeem_google_login(qp["google_login_code"])
+        if ok:
             st.session_state.screen = (
                 nav.DASHBOARD if api.has_completed_onboarding() else nav.ONBOARDING
             )
             st.session_state.screen_params = {}
             if st.session_state.screen == nav.ONBOARDING:
                 st.session_state.onb_stage = "upload"
+            if remember_token:
+                st.session_state.pending_remember_token = remember_token
         else:
             st.session_state.onb_auth_error = True
+        touched = True
+
+    if "remember_token" in qp:
+        new_token = api.restore_remember_token(qp["remember_token"])
+        if new_token:
+            st.session_state.screen = (
+                nav.DASHBOARD if api.has_completed_onboarding() else nav.ONBOARDING
+            )
+            st.session_state.screen_params = {}
+            if st.session_state.screen == nav.ONBOARDING:
+                st.session_state.onb_stage = "upload"
+            st.session_state.pending_remember_token = new_token
+        else:
+            st.session_state.pending_remember_clear = True
         touched = True
 
     if qp.get("gmail") == "connected" or "gmail_error" in qp:
@@ -90,6 +107,17 @@ def _bootstrap():
             st.session_state.onb_stage = "upload"
 
 
+# A fresh session (new tab, reopened browser, or exactly the OAuth-redirect
+# round-trip this bridges) has no way to read the browser's own localStorage
+# directly — see ui.py's "stay signed in" note. Runs *before*
+# _handle_oauth_return clears the URL, so a token found here rides along
+# with whatever OAuth-return params (e.g. gmail=connected) are already on
+# it, and the reload this triggers lets _handle_oauth_return process both
+# together on the next run. Skipped once "remember_token" is already on the
+# URL — that's the reload this produced, now being handled below.
+if not api.get_token() and "remember_token" not in st.query_params:
+    ui.try_restore_remember_token()
+
 _handle_oauth_return()
 
 if "screen" not in st.session_state:
@@ -99,5 +127,11 @@ screen = st.session_state.screen
 
 if screen in nav.GATED and not api.get_token() and not api.restore_session():
     screen = st.session_state.screen = nav.ONBOARDING
+
+pending_token = st.session_state.pop("pending_remember_token", None)
+if pending_token:
+    ui.persist_remember_token(pending_token)
+if st.session_state.pop("pending_remember_clear", False):
+    ui.clear_remember_token()
 
 RENDERERS.get(screen, screens_onboarding.render)()

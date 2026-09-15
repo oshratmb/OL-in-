@@ -164,20 +164,24 @@ def supabase_fetch(method, path, json_body=None, data=None, headers=None, _retry
 # --------------------------------------------------------------------------- #
 # auth (see web/src/auth.js)
 # --------------------------------------------------------------------------- #
-def sign_up(email, password, name):
+def sign_up(email, password, name, remember=False):
     ok, data, _ = ai_fetch(
-        "POST", "/auth/signup", {"email": email, "password": password, "name": name}
+        "POST",
+        "/auth/signup",
+        {"email": email, "password": password, "name": name, "remember": remember},
     )
     if not ok:
         raise ApiError(data.get("detail", "משהו השתבש"))
     set_token(data["access_token"])
-    return data.get("user")
+    return {"user": data.get("user"), "remember_token": data.get("refresh_token")}
 
 
-def log_in(email, password):
+def log_in(email, password, remember=False):
     """``{"status": "ok", ...}`` for a normal login, or an ``mfa_*`` branch for a
     Super Admin whose session isn't at aal2 yet."""
-    ok, data, _ = ai_fetch("POST", "/auth/login", {"email": email, "password": password})
+    ok, data, _ = ai_fetch(
+        "POST", "/auth/login", {"email": email, "password": password, "remember": remember}
+    )
     if not ok:
         raise ApiError(data.get("detail", "משהו השתבש"))
     if data.get("mfa_enrollment_required") or data.get("mfa_challenge_required"):
@@ -189,7 +193,22 @@ def log_in(email, password):
             "factor_id": data.get("factor_id"),
         }
     set_token(data["access_token"])
-    return {"status": "ok", "user": data.get("user")}
+    return {
+        "status": "ok",
+        "user": data.get("user"),
+        "remember_token": data.get("refresh_token"),
+    }
+
+
+def restore_remember_token(token: str) -> str | None:
+    """Exchanges a browser-persisted refresh token for a fresh session in this
+    brand new Streamlit session — see ui.py's "stay signed in" note. Returns
+    the newly rotated refresh token to re-persist, or None if it's stale."""
+    ok, data, _ = ai_fetch("POST", "/auth/refresh", {"refresh_token": token}, _retry=False)
+    if not ok:
+        return None
+    set_token(data.get("access_token"))
+    return data.get("refresh_token")
 
 
 def log_out():
@@ -206,12 +225,14 @@ def google_start_url() -> str:
     return f"{AI_SERVICE_URL}/auth/google/start"
 
 
-def redeem_google_login(code: str) -> bool:
+def redeem_google_login(code: str) -> tuple[bool, str | None]:
     """Exchanges the one-time code from the google/callback redirect for a
     real session, over this same requests.Session — so the refresh cookie
-    that call sets is the one future /auth/refresh calls will actually see."""
+    that call sets is the one future /auth/refresh calls will actually see.
+    Returns (ok, remember_token) — a Google sign-in always persists, same as
+    the checked-by-default case for password login."""
     ok, data, _ = ai_fetch("POST", "/auth/google/redeem", {"code": code}, _retry=False)
     if not ok:
-        return False
+        return False, None
     set_token(data["access_token"])
-    return True
+    return True, data.get("refresh_token")

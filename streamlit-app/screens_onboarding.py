@@ -57,6 +57,7 @@ def _auth_stage():
             name = st.text_input("שם מלא") if signup else ""
             if signup:
                 st.caption("הסיסמה חייבת לכלול: לפחות 8 תווים, אות קטנה, אות גדולה, ספרה ותו מיוחד")
+            remember = st.checkbox("🔒 הישארו מחוברים", value=True)
             submitted = st.form_submit_button(
                 "יצירת חשבון חינם" if signup else "התחברות למערכת",
                 type="primary",
@@ -70,12 +71,16 @@ def _auth_stage():
                     if problems:
                         st.error("הסיסמה חסרה: " + ", ".join(problems))
                         st.stop()
-                    api.sign_up(email.strip(), password, name.strip())
+                    result = api.sign_up(email.strip(), password, name.strip(), remember=remember)
+                    if result.get("remember_token"):
+                        ui.persist_remember_token(result["remember_token"])
                     st.session_state.onb_stage = "upload"
                     st.rerun()
                 else:
-                    result = api.log_in(email.strip(), password)
+                    result = api.log_in(email.strip(), password, remember=remember)
                     if result["status"] == "ok":
+                        if result.get("remember_token"):
+                            ui.persist_remember_token(result["remember_token"])
                         if api.has_completed_onboarding():
                             nav.go(nav.DASHBOARD)
                         st.session_state.onb_stage = "upload"
@@ -126,6 +131,7 @@ def _upload_stage():
     st.divider()
     if st.button("התנתקות"):
         api.log_out()
+        ui.clear_remember_token()
         for key in list(st.session_state.keys()):
             if key != "http_session":
                 st.session_state.pop(key, None)

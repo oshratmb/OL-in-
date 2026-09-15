@@ -54,11 +54,17 @@ class SignUpBody(BaseModel):
     email: EmailStr
     password: str
     name: str | None = None
+    remember: bool = False
 
 
 class LoginBody(BaseModel):
     email: EmailStr
     password: str
+    remember: bool = False
+
+
+class RefreshBody(BaseModel):
+    refresh_token: str | None = None
 
 
 class MfaVerifyEnrollBody(BaseModel):
@@ -118,13 +124,23 @@ def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
     )
 
 
-def _session_response(session: dict, response: Response) -> dict:
+def _session_response(session: dict, response: Response, include_refresh_token: bool = False) -> dict:
+    """``include_refresh_token`` hands the raw refresh token back in the JSON
+    body — normally it lives only in the HttpOnly cookie, but a
+    server-rendered frontend's own outbound HTTP calls (see the comment above
+    ``_PENDING_GOOGLE_SESSIONS``) never see that cookie, so a "stay signed in"
+    frontend needs the value itself to persist client-side (e.g. browser
+    localStorage) and present it again on ``/auth/refresh`` from a brand new
+    session that also won't have the cookie."""
     _set_refresh_cookie(response, session["refresh_token"])
-    return {
+    out = {
         "access_token": session["access_token"],
         "expires_in": session["expires_in"],
         "user": session["user"],
     }
+    if include_refresh_token:
+        out["refresh_token"] = session["refresh_token"]
+    return out
 
 
 @router.post("/signup")
@@ -133,7 +149,7 @@ async def signup(body: SignUpBody, response: Response):
         session = await supabase_auth.sign_up(body.email, body.password, body.name)
     except supabase_auth.AuthError as exc:
         raise HTTPException(exc.status_code, exc.detail) from exc
-    return _session_response(session, response)
+    return _session_response(session, response, include_refresh_token=body.remember)
 
 
 @router.post("/login")
@@ -146,12 +162,16 @@ async def login(body: LoginBody, response: Response):
     gate = await _mfa_gate(session)
     if gate:
         return gate  # refresh cookie intentionally NOT set until MFA clears
-    return _session_response(session, response)
+    return _session_response(session, response, include_refresh_token=body.remember)
 
 
 @router.post("/refresh")
-async def refresh(request: Request, response: Response):
-    refresh_token = request.cookies.get(REFRESH_COOKIE)
+async def refresh(request: Request, response: Response, body: RefreshBody | None = None):
+    # The cookie only survives within one continuously-alive browser tab/
+    # Streamlit session (see _session_response's docstring) — a brand new
+    # session (new tab, browser restart) has no cookie at all, so a "stay
+    # signed in" frontend falls back to a token it persisted itself client-side.
+    refresh_token = request.cookies.get(REFRESH_COOKIE) or (body.refresh_token if body else None)
     if not refresh_token:
         raise HTTPException(401, "No session")
     try:
@@ -159,7 +179,7 @@ async def refresh(request: Request, response: Response):
     except supabase_auth.AuthError as exc:
         response.delete_cookie(REFRESH_COOKIE, path="/auth")
         raise HTTPException(exc.status_code, exc.detail) from exc
-    return _session_response(session, response)
+    return _session_response(session, response, include_refresh_token=True)
 
 
 @router.post("/logout")
@@ -235,7 +255,10 @@ async def google_redeem(body: GoogleRedeemBody, response: Response):
     session = _pop_google_session(body.code)
     if session is None:
         raise HTTPException(400, "Invalid or expired code")
-    return _session_response(session, response)
+    # No separate "remember me" checkbox for a one-click OAuth sign-in —
+    # matches the usual expectation that "Sign in with Google" just stays
+    # signed in, same as the checked-by-default case for password login.
+    return _session_response(session, response, include_refresh_token=True)
 
 
 @router.post("/mfa/enroll")

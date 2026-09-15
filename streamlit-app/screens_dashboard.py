@@ -80,6 +80,7 @@ def _top_bar():
         nav.go(nav.SETTINGS)
     if cols[2].button("🚪 יציאה", use_container_width=True):
         api.log_out()
+        ui.clear_remember_token()
         for key in list(st.session_state.keys()):
             if key != "http_session":
                 st.session_state.pop(key, None)
