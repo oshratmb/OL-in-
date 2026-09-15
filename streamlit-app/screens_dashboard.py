@@ -1,15 +1,27 @@
-"""Screen 3 — the Kanban board (6 columns), unlinked-email banner, Gmail sync.
-Mirrors dashboard.html + web/src/dashboard.js.
+"""Screen 3 — the Kanban board (4 columns), unlinked-email banner, Gmail sync.
+Mirrors dashboard.html + web/src/dashboard.js, reworked from user feedback on
+the first Stitch-based cut of this screen:
 
-The board's look (colored columns, top-accent cards, drag handles) mirrors a
-design generated in Google Stitch against this project's "Professional
-Pipeline" design system — see streamlit-app/README.md. Dragging cards
-between columns uses streamlit-sortables (SortableJS); since its items are
-plain draggable strings, no widget can live *inside* a card, so a card's
-exact status (e.g. picking "on_hold" vs "rejected" within the shared last
-column) and the "start interview prep" action live in the compact list
-below the board instead.
+- Not every company's process has all of phone-screen/take-home/tech-interview
+  as separate stages, and once a card left "applied" it was unclear whether an
+  interview had already happened or when it was scheduled. Those three
+  statuses are now one "בתהליך" (in process) column; the exact sub-stage and
+  its date/note (``applications.next_step_at`` / ``next_step_note`` — see
+  migration 0005) are set in the compact panel below the board, and shown as
+  a line of text on the card itself.
+- The rejected/on-hold column was rendering full-width *below* the other
+  columns instead of beside them, and visually dominated the board in a way
+  that felt discouraging. It's now a normal, deliberately narrow column in
+  the same row as the others, last in RTL reading order.
+- The column header counts didn't update after a drag: streamlit-sortables
+  keeps its own client-side state once mounted and won't necessarily re-read
+  new header text under an unchanged component key. The board's key is now
+  derived from the applications themselves, so it only remounts (picking up
+  fresh counts) when the underlying data actually changes.
 """
+
+import datetime
+import hashlib
 
 import streamlit as st
 from streamlit_sortables import sort_items
@@ -28,24 +40,22 @@ STATUS_LABELS = {
     "on_hold": "מוקפא",
 }
 
-# label, css color key, the status a card dropped into this column gets,
-# every status this column's header count should include
+IN_PROCESS_STATUSES = ["phone_screen", "homework", "tech_interview"]
+
+# label, icon, css color key, flex weight, the status a card dropped into
+# this column gets by default, every status this column covers
 COLUMN_DEFS = [
-    ("הוגש", "gray", "applied", ["applied"]),
-    ("ראיון טלפוני", "blue", "phone_screen", ["phone_screen"]),
-    ("משימת בית", "purple", "homework", ["homework"]),
-    ("ראיון טכנולוגי", "indigo", "tech_interview", ["tech_interview"]),
-    ("הצעת חוזה", "emerald", "offer", ["offer"]),
-    ("דחייה / הוקפא", "rose", "rejected", ["rejected", "on_hold"]),
+    ("הוגש", "📥", "gray", 1, "applied", ["applied"]),
+    ("בתהליך", "🚀", "indigo", 2, "phone_screen", IN_PROCESS_STATUSES),
+    ("הצעת חוזה", "🏆", "emerald", 1, "offer", ["offer"]),
+    ("נדחה / הוקפא", "🗂️", "rose", 1, "rejected", ["rejected", "on_hold"]),
 ]
 
 _COLORS = {
-    "gray": {"bg": "#f4f5f7", "border": "#d8dae2", "accent": "#6c757d", "chip_bg": "#e9ebf0", "chip_fg": "#495057"},
-    "blue": {"bg": "#eff6ff", "border": "#bfdbfe", "accent": "#0d6efd", "chip_bg": "#dbeafe", "chip_fg": "#0057cd"},
-    "purple": {"bg": "#faf5ff", "border": "#e9d5ff", "accent": "#9333ea", "chip_bg": "#f3e8ff", "chip_fg": "#7e22ce"},
-    "indigo": {"bg": "#eef2ff", "border": "#c7d2fe", "accent": "#4f46e5", "chip_bg": "#e0e7ff", "chip_fg": "#4338ca"},
-    "emerald": {"bg": "#ecfdf5", "border": "#a7f3d0", "accent": "#10b981", "chip_bg": "#d1fae5", "chip_fg": "#065f46"},
-    "rose": {"bg": "#fff1f2", "border": "#fecdd3", "accent": "#9ca3af", "chip_bg": "#f3f4f6", "chip_fg": "#6b7280"},
+    "gray": {"bg": "#f4f5f7", "border": "#d8dae2", "accent": "#6c757d"},
+    "indigo": {"bg": "#eef2ff", "border": "#c7d2fe", "accent": "#4f46e5"},
+    "emerald": {"bg": "#ecfdf5", "border": "#a7f3d0", "accent": "#10b981"},
+    "rose": {"bg": "#f7f7f8", "border": "#e5e5e8", "accent": "#a1a1aa"},
 }
 
 
@@ -56,8 +66,8 @@ def _initials(text):
 def _load_applications():
     ok, rows, _ = api.supabase_fetch(
         "GET",
-        "/rest/v1/applications?select=id,status,applied_at,jobs(title,company_name)"
-        "&order=applied_at.desc",
+        "/rest/v1/applications?select=id,status,applied_at,next_step_at,next_step_note,"
+        "jobs(title,company_name)&order=applied_at.desc",
     )
     return rows if ok and isinstance(rows, list) else []
 
@@ -74,6 +84,15 @@ def _top_bar():
             if key != "http_session":
                 st.session_state.pop(key, None)
         nav.go(nav.ONBOARDING)
+
+
+def _motivation_strip(applications):
+    active = sum(1 for a in applications if a["status"] not in ("rejected", "on_hold"))
+    offers = sum(1 for a in applications if a["status"] == "offer")
+    if offers:
+        st.success(f"🏆 {offers} הצעות חוזה על השולחן — כל הכבוד, אתם קרובים!")
+    elif active:
+        st.info(f"🔥 {active} משרות פעילות בתהליך. ממשיכים קדימה!")
 
 
 def _sync_and_unlinked():
@@ -111,9 +130,24 @@ def _item_text(app):
     job = app.get("jobs") or {}
     title = job.get("title") or "משרה"
     company = job.get("company_name") or ""
-    date = (app.get("applied_at") or "")[:10]
-    prep_hint = " 🎯" if app["status"] in ("phone_screen", "tech_interview") else ""
-    return f"{_initials(company)} · {title}{prep_hint}\n{company}\n{date}"
+    lines = [f"{_initials(company)} · {title}", company]
+    if app["status"] in IN_PROCESS_STATUSES:
+        stage_line = f"🚀 {STATUS_LABELS[app['status']]}"
+        if app.get("next_step_at"):
+            stage_line += f" · {app['next_step_at'][:10]}"
+        lines.append(stage_line)
+        if app.get("next_step_note"):
+            lines.append(app["next_step_note"])
+    else:
+        lines.append((app.get("applied_at") or "")[:10])
+    return "\n".join(lines)
+
+
+def _board_signature(applications):
+    key_bits = sorted(
+        f"{a['id']}:{a['status']}:{a.get('next_step_at')}" for a in applications
+    )
+    return hashlib.md5("|".join(key_bits).encode()).hexdigest()[:10]
 
 
 def _board_custom_style():
@@ -121,8 +155,7 @@ def _board_custom_style():
         """
         .sortable-component { display: flex; flex-direction: row-reverse; gap: 14px;
           align-items: flex-start; overflow-x: auto; padding-bottom: 8px; }
-        .sortable-container { flex: 1 1 0; min-width: 190px; border-radius: 14px;
-          padding: 10px; }
+        .sortable-container { border-radius: 14px; padding: 10px; }
         .sortable-container-header { font-weight: 800; font-size: .92rem; padding: 4px 6px 10px;
           font-family: 'Plus Jakarta Sans', sans-serif; }
         .sortable-container-body { display: flex; flex-direction: column; gap: 10px; min-height: 60px; }
@@ -136,13 +169,14 @@ def _board_custom_style():
         .sortable-item * { color: #191b24 !important; }
         """
     ]
-    # nth-child is offset by one: the sortable component renders an extra,
-    # non-".sortable-container" element as the first child of its wrapper.
-    for i, (_, key, *_rest) in enumerate(COLUMN_DEFS, start=2):
+    # nth-child is offset by one: the component renders an extra, non-
+    # ".sortable-container" element as the first child of its wrapper.
+    for i, (_, _icon, key, weight, *_rest) in enumerate(COLUMN_DEFS, start=2):
         c = _COLORS[key]
         rules.append(
             f".sortable-container:nth-child({i}) {{ background: {c['bg']}; "
-            f"border: 1px solid {c['border']}; }}"
+            f"border: 1px solid {c['border']}; flex: {weight} {weight} 0; min-width: "
+            f"{'150px' if weight == 1 else '190px'}; }}"
         )
         rules.append(
             f".sortable-container:nth-child({i}) .sortable-item {{ border-top-color: {c['accent']}; }}"
@@ -151,37 +185,32 @@ def _board_custom_style():
 
 
 def _board(applications):
-    # sort_items' items are plain draggable strings with no room for a hidden
-    # id, so returned items are matched back to applications by their exact
-    # label text — a pool per label, consumed in order. Two applications that
-    # render identically (same company/title/date) are indistinguishable to
-    # the user anyway, so an arbitrary pick between them is harmless.
     pool = {}
     groups = []
-    for label, _key, primary_status, statuses in COLUMN_DEFS:
+    for label, icon, _key, _weight, _primary, statuses in COLUMN_DEFS:
         col_apps = [a for a in applications if a.get("status") in statuses]
         items = []
         for app in col_apps:
             text = _item_text(app)
             pool.setdefault(text, []).append(app)
             items.append(text)
-        groups.append({"header": f"{label}  ·  {len(items)}", "items": items})
+        groups.append({"header": f"{icon} {label}  ·  {len(items)}", "items": items})
 
     result = sort_items(
         groups,
         multi_containers=True,
         direction="vertical",
         custom_style=_board_custom_style(),
-        key="kanban_board",
+        key=f"kanban_board_{_board_signature(applications)}",
     )
 
-    for (_, _key, primary_status, _statuses), group in zip(COLUMN_DEFS, result):
+    for (_, _icon, _key, _weight, primary_status, statuses), group in zip(COLUMN_DEFS, result):
         for item_text in group["items"]:
             candidates = pool.get(item_text)
             if not candidates:
                 continue
             app = candidates.pop(0)
-            if app["status"] != primary_status:
+            if app["status"] not in statuses:
                 ok, _, _ = api.supabase_fetch(
                     "PATCH",
                     f"/rest/v1/applications?id=eq.{app['id']}",
@@ -194,19 +223,20 @@ def _board(applications):
 
 
 def _quick_actions(applications):
-    actionable = [a for a in applications if a["status"] in ("phone_screen", "tech_interview")]
-    with st.expander("🎯 הכנה לראיון / עדכון סטטוס מדויק (נדחה לעומת מוקפא)", expanded=False):
+    with st.expander("🎯 שלב מדויק, מועד לראיון והכנה", expanded=False):
         if not applications:
             st.caption("אין משרות עדיין")
             return
         options = list(STATUS_LABELS.keys())
+        any_in_process = False
         for app in applications:
             job = app.get("jobs") or {}
-            cols = st.columns([3, 2, 2])
-            cols[0].markdown(f"**{job.get('title', '')}** · {job.get('company_name', '')}")
+            st.markdown(f"**{job.get('title', '')}** · {job.get('company_name', '')}")
+            cols = st.columns([2, 2, 2, 1])
+
             current = app["status"] if app["status"] in options else options[0]
             prev_key = f"stprev_{app['id']}"
-            new_status = cols[1].selectbox(
+            new_status = cols[0].selectbox(
                 "סטטוס",
                 options,
                 index=options.index(current),
@@ -214,30 +244,64 @@ def _quick_actions(applications):
                 key=f"status_{app['id']}",
                 label_visibility="collapsed",
             )
+            patch = {}
             if new_status != current and st.session_state.get(prev_key) != new_status:
                 st.session_state[prev_key] = new_status
+                patch["status"] = new_status
+
+            if new_status in IN_PROCESS_STATUSES:
+                any_in_process = True
+                current_date = None
+                if app.get("next_step_at"):
+                    try:
+                        current_date = datetime.date.fromisoformat(app["next_step_at"][:10])
+                    except ValueError:
+                        current_date = None
+                new_date = cols[1].date_input(
+                    "מועד",
+                    value=current_date,
+                    key=f"date_{app['id']}",
+                    label_visibility="collapsed",
+                )
+                new_note = cols[2].text_input(
+                    "הערה",
+                    value=app.get("next_step_note") or "",
+                    key=f"note_{app['id']}",
+                    placeholder="הערה (למשל: Google Meet)",
+                    label_visibility="collapsed",
+                )
+                current_next_step_date = (app.get("next_step_at") or "")[:10] or None
+                new_at = new_date.isoformat() if new_date else None
+                if new_at != current_next_step_date:
+                    patch["next_step_at"] = new_at
+                if new_note != (app.get("next_step_note") or ""):
+                    patch["next_step_note"] = new_note or None
+
+            if patch:
                 ok, _, _ = api.supabase_fetch(
-                    "PATCH",
-                    f"/rest/v1/applications?id=eq.{app['id']}",
-                    json_body={"status": new_status},
+                    "PATCH", f"/rest/v1/applications?id=eq.{app['id']}", json_body=patch
                 )
                 if ok:
                     st.rerun()
                 else:
-                    st.error("עדכון הסטטוס נכשל")
-            if app["status"] in ("phone_screen", "tech_interview"):
-                if cols[2].button("התחל הכנה לראיון", key=f"prep_{app['id']}"):
+                    st.error("העדכון נכשל")
+
+            if new_status in ("phone_screen", "tech_interview"):
+                if cols[3].button("🎯 הכנה", key=f"prep_{app['id']}"):
                     nav.go(nav.INTERVIEW, application_id=app["id"])
-        if not actionable:
-            st.caption("אין כרגע משרות בשלב ראיון פעיל")
+            st.divider()
+
+        if not any_in_process:
+            st.caption("אין כרגע משרות בשלב 'בתהליך'")
 
 
 def render():
     ui.header("לוח המעקב שלי ✨", "כל המשרות שלכם, לפי שלב בתהליך")
     _top_bar()
     st.divider()
-    _sync_and_unlinked()
 
     applications = _load_applications()
+    _motivation_strip(applications)
+    _sync_and_unlinked()
     _board(applications)
     _quick_actions(applications)
